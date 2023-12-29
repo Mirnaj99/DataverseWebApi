@@ -76,7 +76,7 @@ namespace DataverseWebApis.Services
 
             catch (Exception ex)
             {
-                throw new AppException("err000", ex.InnerException);
+                throw new AppException(ex.Message, "err000", ex.InnerException);
 
             }
 
@@ -147,7 +147,7 @@ namespace DataverseWebApis.Services
 
             catch (Exception ex)
             {
-                throw new AppException("err000", ex.InnerException);
+                throw new AppException(ex.Message, "err000", ex.InnerException);
 
             }
 
