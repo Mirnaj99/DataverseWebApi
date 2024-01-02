@@ -1,6 +1,7 @@
 ﻿using ConsoleApp2.Models.Cases;
 using DataverseWebApis.Helpers;
 using DataverseWebApis.Models.Accounts;
+using DataverseWebApis.Models.Contacts;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System.Net;
@@ -63,30 +64,83 @@ namespace DataverseWebApis.Services
 
                                     try
                                     {
-                                        HttpResponseMessage getCases = await httpClient.GetAsync(apiUrl + "incidents?$filter=_customerid_value eq " + account.accountid);
+                                        HttpResponseMessage getUsers = await httpClient.GetAsync(apiUrl + "contacts?$filter=_parentcustomerid_value eq " + account.accountid);
 
-                                        if (getCases.StatusCode == HttpStatusCode.OK)
+                                        if (getUsers.StatusCode == HttpStatusCode.OK)
                                         {
-                                            var casesJson = await getCases.Content.ReadAsStringAsync();
-                                            var casesjsonObject = JsonConvert.DeserializeObject<JObject>(casesJson);
+                                            var usersJson = await getUsers.Content.ReadAsStringAsync();
+                                            var usersJsonObject = JsonConvert.DeserializeObject<JObject>(usersJson);
 
-                                            if (casesjsonObject != null)
+                                            if (usersJsonObject != null)
                                             {
-                                                var caseArray = casesjsonObject["value"];
-                                                if (caseArray != null)
+                                                var userArray = usersJsonObject["value"];
+                                                if (userArray != null)
                                                 {
-                                                    var cases = caseArray.ToObject<List<GetCasesModel>>();
+                                                    var users = userArray.ToObject<List<UserCasesModel>>();
+
                                                     accountCase.accountid = account.accountid;
                                                     accountCase.name = account.name;
-                                                    accountCase.casesModel = cases;
+                                                    accountCase.userCases = new List<UserCasesModel>();
+
+                                                    foreach (var user in users)
+                                                    {
+                                                        try
+                                                        {
+                                                            // Get cases for the user
+                                                            HttpResponseMessage getCases = await httpClient.GetAsync(apiUrl + $"incidents?$filter=_primarycontactid_value eq {user.contactid}");
+
+                                                            if (getCases.StatusCode == HttpStatusCode.OK)
+                                                            {
+                                                                var casesJson = await getCases.Content.ReadAsStringAsync();
+                                                                var casesJsonObject = JsonConvert.DeserializeObject<JObject>(casesJson);
+
+                                                                if (casesJsonObject != null)
+                                                                {
+                                                                    var caseArray = casesJsonObject["value"];
+                                                                    if (caseArray != null)
+                                                                    {
+                                                                        var cases = caseArray.ToObject<List<GetCasesModel>>();
+
+                                                                        UserCasesModel userCase = new UserCasesModel
+                                                                        {
+                                                                            contactid = user.contactid,
+                                                                            fullname = user.fullname,
+                                                                            cases = cases
+                                                                        };
+
+                                                                        accountCase.userCases.Add(userCase);
+                                                                    }
+                                                                    else
+                                                                    {
+                                                                        // User doesn't have cases, add to the userCases array with empty cases
+                                                                        UserCasesModel userCase = new UserCasesModel
+                                                                        {
+                                                                            contactid = user.contactid,
+                                                                            fullname = user.fullname,
+                                                                            cases = new List<GetCasesModel>()
+                                                                        };
+
+                                                                        accountCase.userCases.Add(userCase);
+                                                                    }
+                                                                }
+                                                                accountCases.Add(accountCase);
+                                                            }
+                                                            else
+                                                            {
+                                                                throw new HttpRequestException($"Failed to get cases for user {user.contactid}. Status code: {getCases.StatusCode}");
+                                                            }
+                                                        }
+                                                        catch (Exception ex)
+                                                        {
+                                                            throw new HttpRequestException($"Error while getting cases for user {user.contactid}.", ex);
+                                                        }
+                                                    }
                                                 }
                                             }
-
-                                            accountCases.Add(accountCase);
                                         }
                                         else
                                         {
-                                            throw new HttpRequestException($"Failed to get cases for account {account.accountid}. Status code: {getCases.StatusCode}");
+                                            throw new HttpRequestException($"Failed to get users for account {account.accountid}. Status code: {getUsers.StatusCode}");
                                         }
                                     }
                                     catch (Exception ex)
@@ -114,4 +168,6 @@ namespace DataverseWebApis.Services
 
     }
 }
+
+
 

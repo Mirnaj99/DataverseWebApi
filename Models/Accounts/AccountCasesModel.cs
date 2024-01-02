@@ -1,4 +1,5 @@
 ﻿using ConsoleApp2.Models.Cases;
+using DataverseWebApis.Models.Contacts;
 
 namespace DataverseWebApis.Models.Accounts
 {
@@ -8,6 +9,7 @@ namespace DataverseWebApis.Models.Accounts
 
         public string name { get; set; }
 
-        public List<GetCasesModel> casesModel { get; set; }
+        public List<UserCasesModel> userCases { get; set; }
+
     }
 }

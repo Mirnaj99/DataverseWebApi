@@ -13,7 +13,6 @@ namespace ConsoleApp2.Models.Cases
         public string statuscode { get; set; }
         public string severitycode { get; set; }
 
-        public string _customerid_value { get; set; }
 
     }
 }
